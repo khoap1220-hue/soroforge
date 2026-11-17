@@ -141,6 +141,13 @@ contracts:
 		logWriter = orIoDiscard(opts.logOut)
 	}
 
+	webhooks := opts.webhooks
+	if webhooks == nil {
+		webhooks = deploy.NewHTTPWebhookSenderWithOptions(nil, deploy.WebhookRetryOptions{
+			Sleep: func(context.Context, time.Duration) error { return nil },
+		})
+	}
+
 	svc, err := deploy.New(deploy.Options{
 		Config:          cfg,
 		Store:           memStore,
@@ -151,7 +158,7 @@ contracts:
 		Catalog:         opts.catalog,
 		VerifyDelay:     opts.verifyDelay,
 		Progress:        opts.progress,
-		Webhooks:        opts.webhooks,
+		Webhooks:        webhooks,
 	})
 	require.NoError(t, err)
 
