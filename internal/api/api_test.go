@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/soroworks/soroforge/internal/api"
 	"github.com/soroworks/soroforge/internal/deploy"
+	"github.com/soroworks/soroforge/internal/netcheck"
 	"github.com/soroworks/soroforge/internal/readiness"
 	"github.com/soroworks/soroforge/internal/store"
 	"github.com/stretchr/testify/assert"
@@ -38,21 +39,23 @@ const (
 // tested for what they do with HTTP rather than for lifecycle behaviour — that
 // is covered in the deploy package.
 type fakeService struct {
-	deployResult  *deploy.DeployResult
-	upgradeResult *deploy.UpgradeResult
-	statusResult  *deploy.StatusResult
-	networkStatus *deploy.NetworkStatus
-	contracts     []store.Contract
-	deployments   []store.Deployment
-	err           error
+	deployResult   *deploy.DeployResult
+	upgradeResult  *deploy.UpgradeResult
+	statusResult   *deploy.StatusResult
+	networkStatus  *deploy.NetworkStatus
+	networkResults []netcheck.Result
+	contracts      []store.Contract
+	deployments    []store.Deployment
+	err            error
 
-	lastDeploy  deploy.DeployRequest
-	lastUpgrade deploy.UpgradeRequest
-	lastStatus  deploy.StatusRequest
-	lastNetwork string
-	lastAlias   string
-	lastLimit   int
-	lastOffset  int
+	lastDeploy    deploy.DeployRequest
+	lastUpgrade   deploy.UpgradeRequest
+	lastStatus    deploy.StatusRequest
+	lastNetwork   string
+	lastAlias     string
+	lastLimit     int
+	lastOffset    int
+	networkChecks int
 
 	// calls counts mutating operations, so tests can prove that a rejected
 	// request never reached the service.
@@ -103,6 +106,11 @@ func (f *fakeService) StatusAll(_ context.Context, network string) (*deploy.Netw
 		return nil, f.err
 	}
 	return f.networkStatus, nil
+}
+
+func (f *fakeService) CheckNetworks(_ context.Context) []netcheck.Result {
+	f.networkChecks++
+	return f.networkResults
 }
 
 func (f *fakeService) List(_ context.Context, network string) ([]store.Contract, error) {
